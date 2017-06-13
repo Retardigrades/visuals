@@ -41,7 +41,10 @@ private:
     bool getParamFloat(mg_connection* conn, const std::string& name, float& result, size_t occurance);
     bool getParamInt(mg_connection* conn, const std::string& name, int& result, size_t occurance);
 
+    void add(std::vector<unsigned int>& result, const std::vector<unsigned int>& buf1, const std::vector<unsigned int>& buf2, float a = 0.5f, float b = 0.5f);
     void effectRaindrops(std::vector<unsigned int>& buffer);
+    void effectLines(std::vector<unsigned int>& buffer, int x1, int y1, int x2, int y2, const Color3& color);
+    void effectPlasma(std::vector<unsigned int>& buffer);
 
     int m_width = 25;
     int m_height = 20;
@@ -65,6 +68,7 @@ private:
     int m_music = 0;
     float m_volume = 1.0f;
     std::vector<std::string> m_musicFiles;
+    double m_time;
 };
 
 template<class T>
@@ -308,6 +312,40 @@ void Visuals::send(const std::vector<unsigned int>& buffer)
     m_network.send(out, 800, 700);
 }
 
+float dot(float x1, float y1, float x2, float y2)
+{
+    return sqrt(x1*x2 + y1*y2);
+}
+
+float length(float x, float y)
+{
+    return sqrt(x*x + y*y);
+}
+
+void Visuals::effectPlasma(std::vector<unsigned int>& buffer)
+{
+    const float PI = 3.141592f;
+    for (int y=0; y<m_height; y++)
+        for (int x=0; x<m_width; x++) {
+    
+            float color1 = (sin(dot(x+1.0f, sin(m_time), y+1.0f, cos(m_time))*0.6f+m_time)+1.0f)/2.0f;
+    
+            float centerX = m_width/2.0f + m_width/2.0f*sin(-m_time);
+            float centerY = m_height/2.0f + m_height/2.0f*cos(-m_time);
+    
+            float color2 = (cos(length(x - centerX, y - centerY)*0.3f)+1.0f)/2.0f;
+    
+            float color = (color1 + color2)/2.0f;
+
+            float red	= (cos(PI*color/0.5f+m_time)+1.0f)/2.0f;
+            float green	= (sin(PI*color/0.5f+m_time)+1.0f)/2.0f;
+            float blue	= (sin(m_time)+1.0f)/2.0f;
+
+            buffer[y * m_width + x] = Color3(red, green, blue);
+        }
+    
+}
+
 void Visuals::effectRaindrops(std::vector<unsigned int>& buffer)
 {
     srand(0);
@@ -322,8 +360,7 @@ void Visuals::effectRaindrops(std::vector<unsigned int>& buffer)
         colors[x] = HSVtoRGB(Color3(x / 50.0f, 1.0f, 1.0f));
     }
 
-    double time = m_sound.getTime(m_streamID);
-    int t = time * m_fps / 10.0f;
+    int t = m_time * m_fps / 10.0f;
     for (int y=0; y<m_height; y++) {
         for (int x=0; x<m_width; x++) {
             float frac = fmod(t, 1.0f);
@@ -334,12 +371,39 @@ void Visuals::effectRaindrops(std::vector<unsigned int>& buffer)
     }
 }
 
+void Visuals::effectLines(std::vector<unsigned int>& buffer, int x1, int y1, int x2, int y2, const Color3& color)
+{
+    float dx = float(x2-x1)/float(y2-y1);
+    float dy = float(y2-y1)/float(x2-x1);
+    float len = length(x2-x1, y2-y1);
+
+    if (dx < dy) {
+        float x = x1;
+        for (int y=y1; y<=y2; y++) {
+            x += dx;
+            buffer[y * m_width + x] = color;
+        }
+    } else {
+        float y = y1;
+        for (int x=x1; x<=x2; x++) {
+            y += dy;
+            buffer[(int)y * m_width + x] = color;
+        }
+    }
+}
+
 void Visuals::anim(std::vector<unsigned int>& buffer, std::vector<char> image, float time)
 {
     for (int y=0; y<m_width; y++) {
         for (int x=0; x<m_height; x++) {
         }
     }
+}
+
+void Visuals::add(std::vector<unsigned int>& result, const std::vector<unsigned int>& buf1, const std::vector<unsigned int>& buf2, float a, float b)
+{
+    for (int i=0; i<result.size(); i++)
+        result[i] = Color3(buf1[i]) * a + Color3(buf2[i]) * b;
 }
 
 void Visuals::rotate(std::vector<unsigned int>& buffer, float rot)
@@ -362,15 +426,20 @@ void Visuals::rotate(std::vector<unsigned int>& buffer, float rot)
 
 void Visuals::fill(std::vector<unsigned int>& buffer)
 {
-    double time = m_sound.getTime(m_streamID);
-    int t = time * m_fps;
+    int t = m_time * m_fps;
 
     std::random_device r;
     std::default_random_engine e1(r());
     std::uniform_int_distribution<int> uniform_dist(0, 0xffffff);
 
     buffer.resize(m_width * m_height);
-    effectRaindrops(buffer);
+    std::vector<unsigned int> buf1, buf2;
+    buf1.resize(m_width * m_height);
+    buf2.resize(m_width * m_height);
+    effectRaindrops(buf1);
+    effectPlasma(buf2);
+    add(buffer, buf1, buf2, 0.0f, 0.1f);
+    effectLines(buffer, 0, 0, 00, 19, Color3(1, 1, 1));
     rotate(buffer, m_x/*time / 10.0f*/);
 }
 
@@ -388,10 +457,12 @@ void Visuals::motion(const MotionData& motionData)
     float ys = motionData.y / 16384.0f;
     float zs = motionData.z / 16384.0f;
     float ws = motionData.w / 16384.0f;
-    m_x = atan2(2*xs*ys - 2*ws*zs, 2*ws*ws + 2*xs*xs - 1);  // psi
+    m_x = atan2(2*(xs*ys + ws*zs), 1-2*(ws*ws + xs*xs));  // psi
     m_y = -asin(2*xs*zs + 2*ws*ys);                         // theta
     m_z = atan2(2*ys*zs - 2*ws*xs, 2*ws*ws + 2*zs*zs - 1);  // phi
-    m_x = m_x + 3.141592;
+    /*  m_x = atan2(2*xs*ys - 2*ws*zs, 2*ws*ws + 2*xs*xs - 1);  // psi
+    m_x = m_x + 3.141592f;*/
+   // m_x = m_x + 3.141592f;
     //std::cout << motionData.timestamp << " " << xs << " " << ys << " " << zs << " " << ws << " " << m_x / 3.141592f * 180.0f << " " << m_y / 3.141592f * 180.0f << " " << m_z / 3.141592f * 180.0f << std::endl;
 }
 
@@ -419,7 +490,12 @@ int Visuals::main(int argc, char* argv[])
     });
     
     m_streamID = m_sound.play("compo.ogg", true);
+    m_time = 0;
+    std::chrono::steady_clock::time_point last_tp = std::chrono::steady_clock::now();
+
     while (true) {
+        m_time += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_tp).count() / 1000.0f;
+
         MotionData md = amd;
         motion(md);
 
@@ -427,7 +503,9 @@ int Visuals::main(int argc, char* argv[])
         fill(buffer);
         try {
             send(buffer);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000/m_fps));
+            auto sleep = std::chrono::milliseconds(1000/m_fps);
+            last_tp = std::chrono::steady_clock::now();
+            std::this_thread::sleep_for(sleep);
         } catch (const std::runtime_error& ex) {
             std::cout << ex.what() << std::endl;
         }
