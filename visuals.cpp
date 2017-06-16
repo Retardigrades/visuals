@@ -11,7 +11,7 @@
 #include <array>
 #include <algorithm>
 #include <atomic>
-
+#include "fftw3.h"
 #include "color_utils.hpp"
 
 #include "effect.hpp"
@@ -277,8 +277,29 @@ RotationData Visuals::motion(const MotionData& motionData)
         atan2(2*ys*zs - 2*ws*xs, 2*ws*ws + 2*zs*zs - 1));  // phi
 }
 
+// Create a hamming window of windowLength samples in buffer
+// stand so in : http://blog.bjornroche.com/2012/07/frequency-detection-using-fft-aka-pitch.html
+#if 0
+#define PI 3.141592653589793238f
+    void hamming(int windowLength, float *buffer) {
+
+      for (int i = 0; i < windowLength; i++) {
+
+        buffer[i] = 0.54 - (0.46 * cos(2 * PI * (i / ((windowLength - 1) * 1.0))));
+
+      }
+  for (int i = 0; i < windowLength; i++) {
+
+    buffer[i] = 0.54 - (0.46 * cos(2 * PI * (i / ((windowLength - 1) * 1.0))));
+
+  }
+}
+
+#endif
 int Visuals::main(int argc, char* argv[])
 {
+ 
+
     EffectBuffer buffer;
     m_network.connect(m_host, m_port);
     //std::cout << "sockname: " << m_network.getSockName() << std::endl;
@@ -301,6 +322,24 @@ int Visuals::main(int argc, char* argv[])
     });
     
     m_streamID = m_sound.play("compo.ogg", true);
+    //FFT Gelöt
+    //stand so in der fftw doku
+#if 0
+    int fft_num_in;
+    double *in;
+    fftw_complex *out;
+    fftw_plan p;
+    out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex));
+    //FFTW_ESTIMATE scheint die Flag zu sein.. not sure
+    p = fftw_plan_dft_r2c_1d(fft_num_in, in, out, FFTW_ESTIMATE);
+    fftw_execute(p);
+    float *converted_out;
+    //TODO: irgendwie hier fft**_complex in float umbasteln
+    hamming(fft_num_in, converted_out);
+#endif
+    
+
+    //END FFT Gelöt
     m_time = 0;
     std::chrono::steady_clock::time_point last_tp = std::chrono::steady_clock::now();
 
@@ -343,8 +382,13 @@ int Visuals::main(int argc, char* argv[])
             std::cout << ex.what() << std::endl;
         }
     }
-    
+#if 0
+    fftw_destroy_plan(p);
+    fftw_free(in);
+    fftw_free(out);
+#endif
     return 0;
+
 }
 
 int main(int argc, char* argv[])
