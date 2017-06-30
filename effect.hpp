@@ -3,42 +3,43 @@
 
 #include <vector>
 #include <memory>
+#include <array>
 #include "color.hpp"
 #include "effect_data.hpp"
 
-class EffectBuffer {
+template <int Height, int Width>
+class EffectBufferTemplate {
 public:
-    EffectBuffer() : m_buffer(m_width*m_height) { }
-    void set(int x, int y, const Color3& color) { m_buffer[y * m_width + x] = color; }
-    const Color3& get(int x, int y) const       { return m_buffer[y * m_width + x]; }
+    EffectBufferTemplate() { clear(); }
+    void set(int x, int y, const Color3& color) { m_buffer[y * Width + x] = color; }
+    const Color3& get(int x, int y) const       { return m_buffer[y * Width + x]; }
     std::vector<Color3>& get()                  { return m_buffer; }
-    size_t size() const                         { return m_buffer.size(); }
-    int width() const                           { return m_width; }
-    int height() const                          { return m_height; }
+    size_t size() const                         { return Width * Height; }
+    int width() const                           { return Width; }
+    int height() const                          { return Height; }
     void clear()                                { for (auto& i: m_buffer) i = Color3(0); }
 
     Color3& operator [](size_t i)               { return m_buffer[i]; }
     const Color3& operator [](size_t i) const   { return m_buffer[i]; }
 
-    EffectBuffer& operator =(EffectBuffer&& other)
+    EffectBufferTemplate<Height, Width>& operator =(EffectBufferTemplate<Height, Width>&& other)
     {
         if (this != &other)
             m_buffer = std::move(other.m_buffer);
         return *this;
     }
 
-    EffectBuffer& operator =(const EffectBuffer& other)
+    EffectBufferTemplate<Height, Width>& operator =(const EffectBufferTemplate<Height, Width>& other)
     {
         if (this != &other)
             std::copy(other.m_buffer.begin(), other.m_buffer.end(), m_buffer.begin());
         return *this;
     }
 private:
-    int m_height = 20;
-    int m_width = 25;
-    std::vector<Color3> m_buffer;
+    std::array<Color3, Height*Width> m_buffer;
 };
 
+typedef EffectBufferTemplate<20, 25> EffectBuffer;
 
 struct Point
 {
