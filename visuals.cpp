@@ -289,15 +289,15 @@ void Visuals::setBrightness(float brightness)
 
 RotationData Visuals::motion(const MotionData& motionData)
 {
-    float xs = motionData.x / 16384.0f;
-    float ys = motionData.y / 16384.0f;
-    float zs = motionData.z / 16384.0f;
-    float ws = motionData.w / 16384.0f;
+    float xs = float(motionData.x) / 16384.0f;
+    float ys = float(motionData.y) / 16384.0f;
+    float zs = float(motionData.z) / 16384.0f;
+    float ws = float(motionData.w) / 16384.0f;
 
     return RotationData(
-        atan2(2*(xs*ys + ws*zs), 1-2*(ws*ws + xs*xs)),  // psi
-        -asin(2*xs*zs + 2*ws*ys),                         // theta
-        atan2(2*ys*zs - 2*ws*xs, 2*ws*ws + 2*zs*zs - 1));  // phi
+        atan2f(2.0f * (xs*ys + ws*zs), 1.0f-2.0f*(ws*ws + xs*xs)),  // psi
+        -asinf(2.0f * xs*zs + 2.0f * ws*ys),                         // theta
+        atan2f(2.0f * ys*zs - 2.0f * ws*xs, 2.0f*ws*ws + 2.0f*zs*zs - 1.0f));  // phi
 }
 
 int Visuals::main(int argc, char* argv[])
