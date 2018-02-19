@@ -2,42 +2,52 @@
 #define EFFECT_HPP
 
 #include <vector>
+#include <array>
 #include <memory>
 #include "color.hpp"
 #include "effect_data.hpp"
 
-class EffectBuffer {
+
+template <int _Height, int _Width>
+class EffectBufferBase
+{
+    using EffectBufferType = EffectBufferBase<_Height, _Width>;
+
 public:
-    EffectBuffer() : m_buffer(m_width*m_height) { }
-    void set(int x, int y, const Color3& color) { m_buffer[y * m_width + x] = color; }
-    const Color3& get(int x, int y) const       { return m_buffer[y * m_width + x]; }
-    std::vector<Color3>& get()                  { return m_buffer; }
+    using PixBuff = std::array<Color3, _Height * _Width>;
+    static const int Height = _Height;
+    static const int Width = _Width;
+
+    EffectBufferBase() = default;
+    void set(int x, int y, const Color3& color) { m_buffer[y * _Width + x] = color; }
+    const Color3& get(int x, int y) const       { return m_buffer[y * _Width + x]; }
+    PixBuff& get()                              { return m_buffer; }
     size_t size() const                         { return m_buffer.size(); }
-    int width() const                           { return m_width; }
-    int height() const                          { return m_height; }
+    static constexpr int width()                { return _Width; }
+    static constexpr int height()               { return Height; }
     void clear()                                { for (auto& i: m_buffer) i = Color3(0); }
 
     Color3& operator [](size_t i)               { return m_buffer[i]; }
     const Color3& operator [](size_t i) const   { return m_buffer[i]; }
 
-    EffectBuffer& operator =(EffectBuffer&& other)
+    EffectBufferType& operator =(EffectBufferType&& other)
     {
         if (this != &other)
             m_buffer = std::move(other.m_buffer);
         return *this;
     }
 
-    EffectBuffer& operator =(const EffectBuffer& other)
+    EffectBufferType& operator =(const EffectBufferType& other)
     {
         if (this != &other)
             std::copy(other.m_buffer.begin(), other.m_buffer.end(), m_buffer.begin());
         return *this;
     }
 private:
-    int m_height = 20;
-    int m_width = 25;
-    std::vector<Color3> m_buffer;
+    PixBuff m_buffer;
 };
+
+using EffectBuffer = EffectBufferBase<20, 25>;
 
 
 struct Point
