@@ -1,6 +1,8 @@
 #ifndef CIRCLE_HPP
 #define CIRCLE_HPP
 
+#include <bitset>
+
 #include "effect.hpp"
 
 class CircleEffect : public Effect
@@ -47,6 +49,37 @@ public:
     ExplodingCircleEffect(float radius, float duration, const double start);
     void fill(EffectBuffer& buffer, const EffectState& state) override;
 
+};
+
+
+
+class DisolvingCircleFieldEffect : public Effect
+{
+
+    struct CircleData {
+        CircleData()
+            : m_start(0),
+              m_lenghth(0),
+              m_radius(0),
+              m_color(0),
+              m_center(0, 0)
+        {}
+        double m_start;
+        double m_lenghth;
+        float m_radius;
+        Color3 m_color;
+        Point m_center;
+    };
+
+    unsigned int m_count;
+
+    std::vector<CircleData> circles;
+    std::bitset<EffectBuffer::Height * EffectBuffer::Width> occupied;
+
+
+public:
+    DisolvingCircleFieldEffect(unsigned int count);
+    void fill(EffectBuffer& buffer, const EffectState& state) override;
 };
 
 #endif

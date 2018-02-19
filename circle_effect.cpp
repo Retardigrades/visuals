@@ -115,3 +115,61 @@ void ExplodingCircleEffect::fill(EffectBuffer& buffer, const EffectState& state)
             std::max(0.0f, 1.0f - (progress * 5.0f)) * inverse_squared_progress * .3));
     m_circle.fill(buffer, state);
 }
+
+
+DisolvingCircleFieldEffect::DisolvingCircleFieldEffect(unsigned int count)
+    : m_count(count)
+{
+    for (unsigned i = 0; i < count; ++i) {
+        circles.emplace_back();
+    }
+
+}
+
+
+void DisolvingCircleFieldEffect::fill(EffectBuffer& buffer, const EffectState& state)
+{
+    for (auto& cd : circles) {
+        double elapsed = state.time - cd.m_start;
+
+        if (elapsed < 0.0) {
+            continue;
+        }
+
+        if (elapsed > cd.m_lenghth) {
+           if (0.0 != cd.m_start) {
+               occupied.set( cd.m_center.y * buffer.width() + cd.m_center.x , false);
+           }
+
+           cd.m_start = state.time + 1.0 + 3.0 * double(rand()) / double(RAND_MAX) * 0.3;
+           cd.m_lenghth = (rand() % 3) + 2;
+           cd.m_radius = (rand() % 4) + 2;
+           cd.m_color = HSVtoRGB(Color3(rand() / (float)RAND_MAX, 1.0f, 1.0f));
+
+           unsigned int pos;
+           do {
+               pos = rand() % (EffectBuffer::Height * EffectBuffer::Width);
+           } while (occupied[pos]);
+
+           occupied.set(pos);
+
+           unsigned int x = pos % EffectBuffer::Width;
+           unsigned int y = (pos - x) / EffectBuffer::Width;
+           cd.m_center = Point(x, y);
+
+           continue;
+        }
+
+        float progress(elapsed / cd.m_lenghth);
+        float radius = -1.0 * std::pow(progress - 1.0f, 2) + 1.0f;
+
+        draw_circle(
+                [&](int x, int y, const Color3& color) {
+                    int pos = y * EffectBuffer::Width + x;
+                    buffer[pos] += color * float(1.0f - std::pow(progress, 2));
+                },
+                cd.m_color,  cd.m_center, cd.m_radius * radius, true);
+
+    }
+
+}
