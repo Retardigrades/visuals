@@ -4,7 +4,38 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <functional>
 
+using DrawPixel = std::function<void(int x, int y, const Color3& color)>;
+
+static inline void draw_circle(const DrawPixel& draw, const Color3& color, const Point& center, const float& radius, const bool fill)
+{
+    const int x_min = std::floor(center.x - radius) - 1;
+    const int x_max = std::ceil(center.x + radius) + 1;
+
+    const int y_min = std::max(0, int(std::floor(center.y - radius) - 1));
+    const int y_max = std::min(EffectBuffer::height(), int(std::ceil(center.y + radius) + 1));
+
+    for (int y = y_min; y < y_max; ++y) {
+        float b = float(y) - center.y;
+        for (int x = x_min; x < x_max; ++x) {
+            float a = float(x) - center.x;
+            float d = std::sqrt(a*a + b*b) - radius;
+
+            if (fill) {
+                if (d < 1.0) {
+                    float coeff = float(std::min(1.0f, 1.0f - d));
+                    draw(fmod2(x, EffectBuffer::Width), y,  color * coeff);
+                }
+            } else {
+                if (d < 1.0 && d > -1.5) {
+                    float coeff = (d > 0 ? 1.0f - d : 1.0f + d);
+                    draw(fmod2(x, EffectBuffer::Width), y, color * float(std::min(1.0f, coeff)));
+                }
+            }
+        }
+    }
+}
 
 CircleEffect::CircleEffect(const Point& center, const float radius, const Color3& color, const bool fill)
     : m_center(center), m_radius(radius), m_color(color), m_fill(fill)
@@ -12,33 +43,10 @@ CircleEffect::CircleEffect(const Point& center, const float radius, const Color3
 
 void CircleEffect::fill(EffectBuffer& buffer, const EffectState& state)
 {
-    const int x_min = std::floor(m_center.x - m_radius) - 1;
-    const int x_max = std::ceil(m_center.x + m_radius) + 1;
+    (void) state;
 
-    const int y_min = std::max(0, int(std::floor(m_center.y - m_radius) - 1));
-    const int y_max = std::min(buffer.height(), int(std::ceil(m_center.y + m_radius) + 1));
-
-    const float rad_square = m_radius * m_radius;
-
-    for (int y = y_min; y < y_max; ++y) {
-        float b = float(y) - m_center.y;
-        for (int x = x_min; x < x_max; ++x) {
-            float a = float(x) - m_center.x;
-            float d = std::sqrt(a*a + b*b) - m_radius;
-
-            if (m_fill) {
-                if (d < 1.0) {
-                    float coeff = float(std::min(1.0f, 1.0f - d));
-                    buffer.set(fmod2(x, buffer.width()), y,  m_color * coeff);
-                }
-            } else {
-                if (d < 1.0 && d > -1.5) {
-                    float coeff = (d > 0 ? 1.0f - d : 1.0f + d);
-                    buffer.set(fmod2(x, buffer.width()), y, m_color * float(std::min(1.0f, coeff)));
-                }
-            }
-        }
-    }
+    using namespace std::placeholders;
+    draw_circle(std::bind(&EffectBuffer::set, &buffer, _1, _2, _3), m_color, m_center, m_radius, m_fill);
 }
 
 ExtendingCircleEffect::ExtendingCircleEffect(float radius, const Color3& color, float duration, double time)
