@@ -489,6 +489,21 @@ int Visuals::main(int argc, char* argv[])
 
     effects.clear();
     effects.push_back(
+        std::make_shared<LineEffect>(Point(0, 0), Point(24, 19), Color3(1, 1, 1)));
+    effects.push_back(
+            std::make_shared<RotationEffect>());
+    effects.push_back(
+            std::make_shared<AddEffect>(
+        std::make_shared<DisolvingCircleFieldEffect>(35), 1.0f));
+
+    effects.push_back(
+        std::make_shared<AddEffect>(
+            std::make_shared<FillEffect>(std::make_shared<KickColorIntensity>(Color3(1,1,1))), 0.2f));
+
+    m_effects.push_back(effects);
+
+    effects.clear();
+    effects.push_back(
         std::make_shared<OceanEffect>());
     effects.push_back(
         std::make_shared<AddEffect>(
