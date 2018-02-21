@@ -39,3 +39,46 @@ void LineEffect::fill(EffectBuffer& buffer, const EffectState& state)
     m_rot = state.rotation.x;
     m_lastFactor = factor;
 }
+
+
+FallingLineEffect::FallingLineEffect(const double speed) : m_speed(speed)
+{ }
+
+
+void FallingLineEffect::fill(EffectBuffer& buffer, const EffectState& state)
+{
+    m_lines.remove_if([&](const LineState& l){ return state.time - l.m_start > m_speed; });
+
+    float start = 0.1f;
+
+    for (auto &line : m_lines) {
+        double elapsed = state.time - line.m_start;
+
+        if (elapsed > m_speed) {
+            continue;
+        }
+
+        float progress = elapsed / m_speed;
+
+        float pos = progress * buffer.height();
+
+        float lower = std::ceil(pos);
+        float upper = std::floor(pos);
+
+        for (int i = 0; i < buffer.width(); ++i) {
+            buffer.set(i, std::min(int(lower), buffer.height() -1), line.m_color * (pos - upper));
+            buffer.set(i, int(upper), line.m_color * (1.0f - (pos - upper)));
+        }
+
+        start = std::min(start, pos - line.m_dist);
+    }
+
+    if (start > 0.0f) {
+        LineState new_line;
+        new_line.m_color = HSVtoRGB(Color3(rand() / (float)RAND_MAX, 1.0f, 1.0f));
+        new_line.m_start = state.time;
+        new_line.m_dist = 1.0 + float(rand() % 30) / 10.0f;
+
+        m_lines.push_back(new_line);
+    }
+}
