@@ -60,17 +60,17 @@ void FallingLineEffect::fill(EffectBuffer& buffer, const EffectState& state)
 
         float progress = elapsed / m_speed;
 
-        float pos = progress * buffer.height();
+        float pos = pow(progress, 1.7) * buffer.height();
 
-        float middle = std::ceil(pos);
-        float lower = middle + 1.0f;
-        float upper = std::floor(pos);
+        float lower = std::ceil(pos);
+        float middle = std::floor(pos);
+        float upper = middle - 1.0f;
 
         float coeff = pow((pos - upper), 2);
 
         for (int i = 0; i < buffer.width(); ++i) {
             buffer.set(i, std::min(int(lower), buffer.height() -1), line.m_color * coeff);
-            buffer.set(i, int(upper), line.m_color * (1.0f - coeff));
+            buffer.set(i, std::max(0, int(upper)), line.m_color * (1.0f - coeff));
             buffer.set(i, std::min(int(middle), buffer.height() -1), line.m_color);
         }
 
@@ -81,7 +81,7 @@ void FallingLineEffect::fill(EffectBuffer& buffer, const EffectState& state)
         LineState new_line;
         new_line.m_color = HSVtoRGB(Color3(rand() / (float)RAND_MAX, 1.0f, 1.0f));
         new_line.m_start = state.time;
-        new_line.m_dist = 3.0 + float(rand() % 30) / 10.0f;
+        new_line.m_dist = 2.0 + float(rand() % 30) / 10.0f;
 
         m_lines.push_back(new_line);
     }
