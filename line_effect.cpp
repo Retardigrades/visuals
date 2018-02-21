@@ -66,7 +66,7 @@ void FallingLineEffect::fill(EffectBuffer& buffer, const EffectState& state)
         float middle = std::floor(pos);
         float upper = middle - 1.0f;
 
-        float coeff = pow((pos - upper), 2);
+        float coeff = pow((pos - middle), 2);
 
         for (int i = 0; i < buffer.width(); ++i) {
             buffer.set(i, std::min(int(lower), buffer.height() -1), line.m_color * coeff);
