@@ -37,7 +37,7 @@
 #pragma pack(1)
 struct MotionData {
     unsigned int timestamp;
-    short w, x, y, z;
+    int16_t w, x, y, z;
     unsigned short counter;
 };
 #pragma pack()
@@ -511,6 +511,21 @@ int Visuals::main(int argc, char* argv[])
     effects.push_back(
         std::make_shared<AddEffect>(
             std::make_shared<StarsEffect>(std::make_shared<ConstColorMaker>(Color3(1, 1, 1)), Rect(Point(0, 0), Point(24, 10)), 5), 1.0f));
+
+    effects.push_back(
+        std::make_shared<AddEffect>(
+            std::make_shared<FillEffect>(std::make_shared<KickColorIntensity>(Color3(1,1,1))), 0.2f));
+
+    m_effects.push_back(effects);
+
+    effects.clear();
+    effects.push_back(
+        std::make_shared<LineEffect>(Point(0, 0), Point(24, 19), Color3(1, 1, 1)));
+    effects.push_back(
+            std::make_shared<RotationEffect>());
+    effects.push_back(
+            std::make_shared<AddEffect>(
+        std::make_shared<FallingLineEffect>(5.0), 1.0f));
 
     effects.push_back(
         std::make_shared<AddEffect>(
