@@ -525,7 +525,7 @@ int Visuals::main(int argc, char* argv[])
             std::make_shared<RotationEffect>());
     effects.push_back(
             std::make_shared<AddEffect>(
-        std::make_shared<FallingLineEffect>(5.0), 1.0f));
+        std::make_shared<FallingLineEffect>(3.0), 1.0f));
 
     effects.push_back(
         std::make_shared<AddEffect>(
